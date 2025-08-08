@@ -1,0 +1,286 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>高中物理可视化教学助手 - 力学模拟</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <header class="app-header">
+      <div class="brand">
+        <div class="logo" id="brand-logo">F=ma</div>
+        <div class="title">
+          高中物理可视化教学助手
+          <span class="subtitle">力学：速度 / 加速度 / 重力 / 弹力</span>
+        </div>
+      </div>
+      <div class="actions">
+        <button id="btn-play" class="primary">开始</button>
+        <button id="btn-pause">暂停</button>
+        <button id="btn-step">单步</button>
+        <button id="btn-reset" class="danger">重置</button>
+        <button id="btn-view-reset">复位视角</button>
+      </div>
+    </header>
+
+    <main class="layout">
+      <section class="left">
+        <div class="canvas-wrap">
+          <canvas id="sim-canvas" width="900" height="520"></canvas>
+          <div class="overlay">
+            <div class="legend">
+              <span class="chip vel">速度 v</span>
+              <span class="chip acc">加速度 a</span>
+              <span class="chip grav">重力</span>
+              <span class="chip spring">弹力</span>
+              <span class="chip drag">阻力</span>
+            </div>
+            <div id="selection-info" class="sel-info" style="display:none"></div>
+          </div>
+        </div>
+        <div class="charts">
+          <div class="chart">
+            <div class="chart-title">速度大小 | v(t)</div>
+            <canvas id="chart-speed" width="450" height="160"></canvas>
+          </div>
+          <div class="chart">
+            <div class="chart-title">加速度大小 | a(t)</div>
+            <canvas id="chart-acc" width="450" height="160"></canvas>
+          </div>
+        </div>
+      </section>
+
+      <aside class="right">
+        <div class="panel">
+          <div class="panel-title">场景</div>
+          <label class="row">
+            <span>选择场景</span>
+            <select id="scenario">
+              <option value="projectile">抛体运动（含空气阻力）</option>
+              <option value="freefall">自由落体</option>
+              <option value="spring">水平弹簧振子</option>
+              <option value="force">力的合成与分解</option>
+              <option value="uniform">匀速直线运动</option>
+              <option value="uniform-accel">匀加速直线运动</option>
+              <option value="collision-1d">一维碰撞（弹性/非弹性）</option>
+              <option value="lever">杠杆平衡（力矩）</option>
+            </select>
+          </label>
+          <label class="row" data-scope="force">
+            <span>力1 F₁ (N)</span>
+            <input type="range" id="fcomp-f1" min="0" max="100" step="1" value="30" />
+            <output id="fcomp-f1-val">30</output>
+          </label>
+          <label class="row" data-scope="force">
+            <span>角度 θ₁ (°)</span>
+            <input type="range" id="fcomp-a1" min="-180" max="180" step="1" value="0" />
+            <output id="fcomp-a1-val">0</output>
+          </label>
+          <label class="row" data-scope="force">
+            <span>力2 F₂ (N)</span>
+            <input type="range" id="fcomp-f2" min="0" max="100" step="1" value="20" />
+            <output id="fcomp-f2-val">20</output>
+          </label>
+          <label class="row" data-scope="force">
+            <span>角度 θ₂ (°)</span>
+            <input type="range" id="fcomp-a2" min="-180" max="180" step="1" value="90" />
+            <output id="fcomp-a2-val">90</output>
+          </label>
+        </div>
+
+        <div class="panel">
+          <div class="panel-title">初始条件</div>
+          <label class="row">
+            <span>质量 m (kg)</span>
+            <input type="range" id="mass" min="0.1" max="10" step="0.1" value="1" />
+            <input type="number" id="mass-num" min="0.1" max="10" step="0.1" value="1" />
+          </label>
+          <label class="row" data-scope="projectile">
+            <span>初速度 v₀ (m/s)</span>
+            <input type="range" id="v0" min="0" max="50" step="1" value="20" />
+            <input type="number" id="v0-num" min="0" max="50" step="1" value="20" />
+          </label>
+          <label class="row" data-scope="projectile">
+            <span>发射角 θ (°)</span>
+            <input type="range" id="angle" min="0" max="90" step="1" value="45" />
+            <input type="number" id="angle-num" min="0" max="90" step="1" value="45" />
+          </label>
+          <label class="row" data-scope="spring">
+            <span>弹簧刚度 k (N/m)</span>
+            <input type="range" id="spring-k" min="5" max="200" step="1" value="50" />
+            <input type="number" id="spring-k-num" min="5" max="200" step="1" value="50" />
+          </label>
+          <label class="row" data-scope="spring">
+            <span>阻尼 b (kg/s)</span>
+            <input type="range" id="damping-b" min="0" max="5" step="0.1" value="0.5" />
+            <input type="number" id="damping-b-num" min="0" max="5" step="0.1" value="0.5" />
+          </label>
+          <label class="row" data-scope="uniform">
+            <span>速度 u (m/s)</span>
+            <input type="range" id="uniform-u" min="0" max="20" step="0.5" value="5" />
+            <input type="number" id="uniform-u-num" min="0" max="20" step="0.5" value="5" />
+          </label>
+          <label class="row" data-scope="uniform-accel">
+            <span>初速度 u₀ (m/s)</span>
+            <input type="range" id="ua-u0" min="-10" max="10" step="0.5" value="0" />
+            <input type="number" id="ua-u0-num" min="-10" max="10" step="0.5" value="0" />
+          </label>
+          <label class="row" data-scope="uniform-accel">
+            <span>加速度 aₓ (m/s²)</span>
+            <input type="range" id="ua-ax" min="-10" max="10" step="0.5" value="2" />
+            <input type="number" id="ua-ax-num" min="-10" max="10" step="0.5" value="2" />
+          </label>
+          <label class="row" data-scope="collision-1d">
+            <span>质量 m₁ (kg)</span>
+            <input type="range" id="col-m1" min="0.5" max="10" step="0.5" value="2" />
+            <input type="number" id="col-m1-num" min="0.5" max="10" step="0.5" value="2" />
+          </label>
+          <label class="row" data-scope="collision-1d">
+            <span>质量 m₂ (kg)</span>
+            <input type="range" id="col-m2" min="0.5" max="10" step="0.5" value="3" />
+            <input type="number" id="col-m2-num" min="0.5" max="10" step="0.5" value="3" />
+          </label>
+          <label class="row" data-scope="collision-1d">
+            <span>速度 v₁ (m/s)</span>
+            <input type="range" id="col-v1" min="-15" max="15" step="0.5" value="5" />
+            <input type="number" id="col-v1-num" min="-15" max="15" step="0.5" value="5" />
+          </label>
+          <label class="row" data-scope="collision-1d">
+            <span>速度 v₂ (m/s)</span>
+            <input type="range" id="col-v2" min="-15" max="15" step="0.5" value="-3" />
+            <input type="number" id="col-v2-num" min="-15" max="15" step="0.5" value="-3" />
+          </label>
+          <label class="row" data-scope="collision-1d">
+            <span>恢复系数 e</span>
+            <input type="range" id="col-e" min="0" max="1" step="0.05" value="1" />
+            <input type="number" id="col-e-num" min="0" max="1" step="0.05" value="1" />
+          </label>
+          <label class="row" data-scope="lever">
+            <span>左侧力 F₁ (N)</span>
+            <input type="range" id="lev-f1" min="0" max="50" step="1" value="20" />
+            <input type="number" id="lev-f1-num" min="0" max="50" step="1" value="20" />
+          </label>
+          <label class="row" data-scope="lever">
+            <span>左侧臂长 d₁ (m)</span>
+            <input type="range" id="lev-d1" min="0" max="3" step="0.1" value="1.5" />
+            <input type="number" id="lev-d1-num" min="0" max="3" step="0.1" value="1.5" />
+          </label>
+          <label class="row" data-scope="lever">
+            <span>右侧力 F₂ (N)</span>
+            <input type="range" id="lev-f2" min="0" max="50" step="1" value="20" />
+            <input type="number" id="lev-f2-num" min="0" max="50" step="1" value="20" />
+          </label>
+          <label class="row" data-scope="lever">
+            <span>右侧臂长 d₂ (m)</span>
+            <input type="range" id="lev-d2" min="0" max="3" step="0.1" value="1.5" />
+            <input type="number" id="lev-d2-num" min="0" max="3" step="0.1" value="1.5" />
+          </label>
+        </div>
+
+        <div class="panel">
+          <div class="panel-title">环境参数</div>
+          <label class="row">
+            <span>重力 g (m/s²)</span>
+            <input type="range" id="gravity" min="0" max="20" step="0.1" value="9.8" />
+            <input type="number" id="gravity-num" min="0" max="20" step="0.1" value="9.8" />
+          </label>
+          <label class="row" data-scope="projectile">
+            <span>空气阻力系数 C</span>
+            <input type="range" id="drag" min="0" max="0.2" step="0.005" value="0.02" />
+            <input type="number" id="drag-num" min="0" max="0.2" step="0.005" value="0.02" />
+          </label>
+          <label class="row">
+            <span>时间倍率</span>
+            <input type="range" id="time-scale" min="0.2" max="2" step="0.1" value="1" />
+            <input type="number" id="time-scale-num" min="0.2" max="2" step="0.1" value="1" />
+          </label>
+        </div>
+
+        <div class="panel">
+          <div class="panel-title">显示</div>
+          <label class="row small">
+            <span>显示速度矢量</span>
+            <input type="checkbox" id="show-vel" checked />
+          </label>
+          <label class="row small">
+            <span>显示加速度矢量</span>
+            <input type="checkbox" id="show-acc" checked />
+          </label>
+          <label class="row small">
+            <span>显示轨迹</span>
+            <input type="checkbox" id="show-trace" checked />
+          </label>
+          <label class="row small">
+            <span>显示网格</span>
+            <input type="checkbox" id="show-grid" checked />
+          </label>
+          <div class="row">
+            <button id="btn-clear-trace">清除轨迹</button>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-title">多球交互</div>
+          <div class="row small">
+            <button id="btn-add-ball">添加小球（使用当前参数）</button>
+          </div>
+          <div class="row small">
+            <button id="btn-clear-balls">清空小球</button>
+          </div>
+          <div class="footnote">提示：点击画布可选择小球，图表与矢量针对选中小球显示。</div>
+        </div>
+
+        <div class="panel" id="ball-edit-panel" style="display: none;">
+          <div class="panel-title">编辑选中小球</div>
+          <div class="row" data-param="mass">
+            <label>质量 m (kg)</label>
+            <input type="range" id="ball-mass" min="0.1" max="10" step="0.1" value="1">
+            <output id="ball-mass-val">1.0</output>
+            <input type="number" id="ball-mass-num" min="0.1" max="10" step="0.1" value="1">
+          </div>
+          <div class="row" data-param="v0">
+            <label>初速度 v0 (m/s)</label>
+            <input type="range" id="ball-v0" min="0" max="50" step="1" value="20">
+            <output id="ball-v0-val">20</output>
+            <input type="number" id="ball-v0-num" min="0" max="50" step="1" value="20">
+          </div>
+          <div class="row" data-param="angle">
+            <label>发射角 θ (°)</label>
+            <input type="range" id="ball-angle" min="0" max="90" step="1" value="45">
+            <output id="ball-angle-val">45</output>
+            <input type="number" id="ball-angle-num" min="0" max="90" step="1" value="45">
+          </div>
+          <div class="row small">
+            <button id="btn-apply-ball-params">应用参数</button>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-title">数据 / 计算（实时）</div>
+          <div class="row small"><span>时间 t (s)</span><span id="stat-t">0.00</span></div>
+          <div class="row small"><span>位置 (x, y) (m)</span><span id="stat-pos">(0.00, 0.00)</span></div>
+          <div class="row small"><span>速度 (vₓ, vᵧ) (m/s)</span><span id="stat-vel">(0.00, 0.00)</span></div>
+          <div class="row small"><span>加速度 (aₓ, aᵧ) (m/s²)</span><span id="stat-acc">(0.00, 0.00)</span></div>
+          <div class="row small"><span>|v| / |a|</span><span id="stat-mag">0.00 / 0.00</span></div>
+          <div class="row small"><span>动能 Ek (J)</span><span id="stat-ek">0.00</span></div>
+          <div class="row small"><span>势能 Ep (J)</span><span id="stat-ep">0.00</span></div>
+          <div class="row small"><span>机械能 Em (J)</span><span id="stat-em">0.00</span></div>
+          <div class="row small" data-scope="collision-1d"><span>碰撞 p 总 (kg·m/s)</span><span id="stat-p">0.00</span></div>
+        </div>
+
+        <div class="panel footnote">
+          小贴士：可通过调节 g、空气阻力、弹簧刚度/阻尼，观察轨迹、速度与加速度随时间的变化。
+        </div>
+      </aside>
+    </main>
+
+    <footer class="app-footer">
+      © 2025 物理教学演示 | 仅用于课堂演示与学习
+    </footer>
+
+    <script defer src="./js/bundle.js"></script>
+  </body>
+  </html>
+
+
